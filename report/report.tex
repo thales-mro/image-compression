@@ -38,20 +38,20 @@
 \markboth{MO443 Digital Image Processing}{}
 
 \begin{document}
-  \title{Project 1 - Halftoning}
+  \title{Project 5 - Compression}
   \author{Thales Mateus Rodrigues Oliveira (RA 148051)
     \thanks{ra148051@students.ic.unicamp.br}
   }
   \maketitle
   
   \begin{abstract}
-    In this project, it was given the task of creating a halftoning algorithm to generate images in grayscale and color. To fulfill the requirements, the solution applies error diffusion for neighbor pixels on image sweeping, using approaches listed in the literature. It was able to generate the halftoning images in grayscale and color, and the differences of each error diffusion approach, the pros and cons of the implementation are explained in this report.
+    In this project, it was given the task of implementing an image compression algorithm, using mathematical formulations. To fulfill the requirements, the solution uses the Principal Component Analysis approach. It was able to generate the compressed images, with some degree of information loss. The details of the implementation are explained in this report.
   \end{abstract}
   
 \section{Introduction}
 Halftoning is a technique used for reducing the number of colors used to represent an image, while is desired to keep a good visual perception of its contents for the user. In this work, the implementation of halftoning techniques with error diffusion was realized. For each technique, tests were executed to analyze the quality of the output image, sweeping the image in two different ways. The next sections explains the implemented algorithm, the experiments realized and the output analysis.
 \\
-The code, along with the input files and the report is delivered in the compressed file THALES\_MATEUS\_RODRIGUES\_OLIVEIRA\_148051.tar, in the Google Classroom.
+The code, along with the input files and the report is delivered in the compressed file THALES\_MATEUS\_RODRIGUES\_OLIVEIRA\_148051.zip, in the Google Classroom.
 \section{The Program}
  
 The program was implemented with Python 3.7.3. The libraries used and their respective versions are OpenCV 4.1.0 and Numpy 1.16.4.
