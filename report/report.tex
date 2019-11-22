@@ -38,20 +38,21 @@
 \markboth{MO443 Digital Image Processing}{}
 
 \begin{document}
-  \title{Project 5 - Compression}
+  \title{Project 5 - Image Compression}
   \author{Thales Mateus Rodrigues Oliveira (RA 148051)
     \thanks{ra148051@students.ic.unicamp.br}
   }
   \maketitle
   
   \begin{abstract}
-    In this project, it was given the task of implementing an image compression algorithm, using mathematical formulations. To fulfill the requirements, the solution uses the Principal Component Analysis approach. It was able to generate the compressed images, with some degree of information loss. The details of the implementation are explained in this report.
+    In this project, it was given the task of implementing an image compression algorithm, using mathematical formulations. To fulfill the requirements, the solution uses the Principal Component Analysis (PCA) approach. It was able to generate the compressed images for some cases, with some degree of information loss. The details of the implementation are explained in this report.
   \end{abstract}
   
 \section{Introduction}
-Halftoning is a technique used for reducing the number of colors used to represent an image, while is desired to keep a good visual perception of its contents for the user. In this work, the implementation of halftoning techniques with error diffusion was realized. For each technique, tests were executed to analyze the quality of the output image, sweeping the image in two different ways. The next sections explains the implemented algorithm, the experiments realized and the output analysis.
+
+Principal Component Analysis (PCA) is a technique used for reducing the dimensionality of data, by applying Single Value Decomposition (SVD) to the image matrix, and selecting a reduced number of axis components. In this work, the implementation of the technique was done, and tests performed, changing the number of selected components and evaluating by quantitative indicators. The next sections explains the implemented algorithm, the experiments realized and the output analysis.
 \\
-The code, along with the input files and the report is delivered in the compressed file THALES\_MATEUS\_RODRIGUES\_OLIVEIRA\_148051.zip, in the Google Classroom.
+The code, along with the input files is delivered in the compressed file THALES\_MATEUS\_RODRIGUES\_OLIVEIRA\_148051.zip, in the Google Classroom. The report is sent via e-mail.
 \section{The Program}
  
 The program was implemented with Python 3.7.3. The libraries used and their respective versions are OpenCV 4.1.0 and Numpy 1.16.4.
@@ -72,7 +73,7 @@ The project has a Makefile available to help performing some actions on it. The 
 
 \subsection{Input}
 
-The program does not have an input argument by default, the input images are listed in code, and they are expected to be stored in the \textbf{input} folder. Listing \ref{code:input} shows how images are listed to be executed in code. The $images$ tuple is implemented in $src/main.py$
+The program does not have an input argument by default, the input images are listed in code, and they are expected to be stored in the \textbf{input} folder. Listing \ref{code:input} shows how images are listed to be executed in code. The $images$ tuple is implemented in $src/main.py$.
 
 \begin{lstlisting}[language=Python, caption={Input images inside code}, label={code:input}]
   # for inserting other images, add tem to /input folder and list them here
@@ -85,109 +86,80 @@ The program does not have an input argument by default, the input images are lis
 \end{lstlisting}
 
 \subsection{Output}
-The output of the program is a series of halftoning images based on the input ones, changing the error diffusion methods and the sweeping directions. The output images are stored in the \textbf{output} folder, and they are labeled by concatenating the image name, whether is colored or grayscale, the error diffusion method and the sweep order (\textit{e.g.: baboon\_colored\_sierra\_left-to-right.png})
+The output of the program is a series of compressed images based on the input ones, changing the number of selected components from the SVD. The output images are stored in the \textbf{output} folder, and they are labeled by concatenating the image name and the number of selected components (\textit{e.g.: baboon\_10.png})
 
 \subsection{Implementation}
-The function which implements the halftoning operation is defined in the \textit{src/halftoning.py} file. The file contains a dictionary that lists the approaches used for error diffusion, as mentioned in Figure 1 in the project proposal. Listing \ref{code:masks} shows the implemented dictionary.
+The function which implements the compression operation is defined in the \textit{src/compress.py} file, and it is named \textit{apply\_svd()}. As explained in the project description\cite{PROJECT:5}, as the result of the SVD gives the matrix of eigenvalues in the decreasing order, the first elements of the eigenvalues and eigenvectors matrices contributes more to the final result of the image (has higher contribution in the image formation). Therefore, keeping only few of these elements may result in images with lower quality, which requires less capacity of storage. The function receives the original image, and the number of components to be kept. Listing \ref{code:svd} shows keyparts of implementation. It was inspired by Algorithm I from the project description. As we can see, it applies the SVD for every single color channel, selects the desired number of components from each matrix, and then builds the image back.
 
-\begin{lstlisting}[language=Python, caption={Masks used for error diffusion}, label={code:masks}]
-  # Masks used for error propagation
-  MASKS = {
-      "floyd-steinberg": np.array([
-        [0, 0, 7/16],
-        [3/16, 5/16, 1/16]]),
-      "stevenson-arce": np.array([
-        [0, 0, 0, 0, 0, 32/200, 0],
-        [12/200, 0, 26/200, 0, 30/200, 0, 16/200],
-        [0, 12/200, 0, 26/200, 0, 12/200, 0],
-        [5/200, 0, 12/200, 0, 12/200, 0, 5/200]]),
-      "burkes": np.array([
-        [0, 0, 0, 8/32, 4/32],
-        [2/32, 4/32, 8/32, 4/32, 2/32]]),
-      "sierra": np.array([
-        [0, 0, 0, 5/32, 3/32],
-        [2/32, 4/32, 5/32, 4/32, 2/32],
-        [0, 2/32, 3/32, 2/32, 0]]),
-      "stucki": np.array(
-        [[0, 0, 0, 8/42, 4/42],
-        [2/42, 4/42, 8/42, 4/42, 2/42],
-        [1/42, 2/42, 4/42, 2/42, 1/42]]),
-      "jarvis-judice-ninke": np.array([
-        [0, 0, 0, 7/48, 5/48],
-        [3/48, 5/48, 7/48, 5/48, 3/48],
-        [1/48, 3/48, 5/48, 3/48, 1/48]])
-  }
-\end{lstlisting}
-The function \textit{apply\_halftoning} implements the desired operation. It receives the original image, the name of the error diffusion approach, the sweep method (left to right or alternated), and a benchmarking flag to monitor execution time. Listing \ref{code:halftoning} shows keyparts of implementation
+\begin{lstlisting}[language=Python, caption={Implementation of Compression with PCA}, label={code:svd}]
+def apply_svd(img, n_components):
+  """
+  It applies image compression method using SVD decomposition.  
 
-\begin{lstlisting}[language=Python, caption={Implementation of halftoning solution}, label={code:halftoning}]
-def apply_halftoning(img, err_method="floyd-steinberg", sweep_method=1, benchmarking=False):
+  Keyword arguments:
+  img -- the image to be compressed
+  n_components -- the number of svd components to be considered
+  """
+
   # initialize result array
-  result = np.zeros_like(img)
-  # separates the masks that could be used
-  # (it needs the flip version of mask for alternated sweep)
-  m = (0, MASKS[err_method], np.flip(MASKS[err_method], 1))
-  # saves mask dimensions to be used when needed
-  mask_h, mask_w = m[1].shape
-  # saves image dimensions to be used when needed
-  img_h, img_w = img.shape
-  # it holds the offset of manipulated pixel related to mask
-  offset = mask_w//2
-  # applies padding to image to make it easier the operations with mask
-  img_padded = np.pad(img, ((0, mask_h - 1), (mask_w//2, mask_w//2)), 'constant')
+  result = np.zeros_like(img.astype(np.double))
 
-  # default starting direction (left to right)
-  direction = 1
-  # default index values for sweeping from left to right and right to left
-  sweep_options = (0, (0, img_w), (img_w - 1, 0))
+  # do the SVD for every color channel separately
+  w_b, u_b, vt_b = np.linalg.svd(img[:, :, 0].astype(np.double))
+  w_g, u_g, vt_g = np.linalg.svd(img[:, :, 1].astype(np.double))
+  w_r, u_r, vt_r = np.linalg.svd(img[:, :, 2].astype(np.double))
 
-  # it sweeps the image from top to bottom
-  for j in range(img_h):
-      # it sweeps the image from left to right or right to left depending on direction
-      beginning, end = sweep_options[direction]
-      # do the horizontal sweeping
-      for i in range(beginning, end, direction):
-          # depending on analyzed pixel, set its result value according to threshold
-          if img_padded[j][(i + offset)] < 128:
-              result[j][i] = 0
-          else:
-              result[j][i] = 1
+  # transforms U to matrix form
+  u_b = np.diag(u_b)
+  u_g = np.diag(u_g)
+  u_r = np.diag(u_r)
 
-          # calculates associated error
-          error = img_padded[j][(i + offset)] - result[j][i]*255
-          # propagates error according to mask
-          img_padded[j:j+mask_h, i:i+mask_w] = (img_padded[j:j+mask_h, i:i+mask_w]
-                                                + (error*m[direction])).astype(np.uint8)
-      # it changes from left to right to right to left (vice-versa) depending on the sweep method
-      direction *= sweep_method
+  # separates the desired number of components
+  w_result_b = w_b[:, 0:n_components]
+  w_result_g = w_g[:, 0:n_components]
+  w_result_r = w_r[:, 0:n_components]
+  u_result_b = u_b[0:n_components, 0:n_components]
+  u_result_g = u_g[0:n_components, 0:n_components]
+  u_result_r = u_r[0:n_components, 0:n_components]
+  vt_result_b = vt_b[0:n_components, :]
+  vt_result_g = vt_g[0:n_components, :]
+  vt_result_r = vt_r[0:n_components, :]
 
-  # scale the result
-  return result*255
+  # builds the compressed image by multiplying the desired components
+  result[:, :, 0] = w_result_b.dot(u_result_b.dot(vt_result_b))
+  result[:, :, 1] = w_result_g.dot(u_result_g.dot(vt_result_g))
+  result[:, :, 2] = w_result_r.dot(u_result_r.dot(vt_result_r))
+
+  return result
 
 \end{lstlisting}
-The decisions made in the implementation are explained in the following part.
-\subsubsection{Dealing with sweeping directions}
-In this solution, it was implemented two approaches: sweeping every line from left to right, and alternating directions when changing from one line to the other. Figure \ref{fig:sweepingmodes} shows the approaches. If the second mentioned method is chosen, the error diffusion mask has to be mirroed in the vertical direction. In order to avoid \textit{if-else} statements when deciding which mask to use for the specific line (the regular or the mirroed one), the tuple \textit{m} holds both masks, and decides which one to use based on the \textit{direction} flag (if \textit{direction} is 1, use the regular mask. If it is -1, use the mirroed one). To sweep the image from right to left, it is also considered the indexes in the loop to decrease. Following the same idea of tuple \textit{m}, the tuple \textit{sweep\_options} is used to set the starting index, the stop index, and the \textit{direction} flag as step.
 
-\begin{figure}[H]
-  \centering
-  \includegraphics[width=0.4\hsize]{images/sw-left-to-right.png}
-  \includegraphics[width=0.4\hsize]{images/sw-alternate.png}
-  \caption{Left: Sweeping from left to right. Right: Sweeping alternated}
-  \label{fig:sweepingmodes}
-\end{figure}
+\subsubsection{Evaluating the Compression}
+With the objective of evaluating the compression, two quantitative indicators were implemented: the compression rate, and the root mean-squared error. The formulations of both indicators are given in the project description\cite{PROJECT:5}. Listing \ref{code:eval} shows the implementation. After calculating the values, their are printed in the standard output.
 
-\subsubsection{Image Padding to deal with borders}
-In order to deal with pixels in the border of the image, to diffuse the error, the image is padded as the mask propagates the error to its neighbors, as they may not exist for pixels in the border. The padding is done based on the mask properties, such as not diffusing errors to already visited pixels and the dimensions of each mask. The values padded do not matter, as they are not visited.
+\begin{lstlisting}[language=Python, caption={Evaluation of Compressed Images}, label={code:eval}]
+def evaluate_compression(original, compressed, name, n_components):
+  """
+  It quantitatively evaluates a compression, by calculating the compression rate and the Root Mean-Squared Error (RMSE)
 
-\subsubsection{Defining the value of the pixel and the error diffusion}
-The main ideia of the halftoning algorithm is the following: rather than a simple binarization, in order to create the "feeling" of having more than 2 intensities of a color in the image, an analyzed pixel propagates its information to specific close neighbors. This propagation of information is what we define as error diffusion. Based on a threshold which defines whether a pixel has the maximum or minimum intensity, the resulting pixel value is defined and the error is calculated and passed through specific neighbors with specific weights. That weight is what is defined in the error diffusion masks. The error diffused for the neighbor pixels is proportional to the mentioned weight. After performing these steps to all pixels in the image, the process is done. The steps are the ones inside the two \textit{for} statements in listing \ref{code:halftoning}. They were implemented based on Algorithm 5, presented on the \textit{Enhancement} class of MO443: Introduction to Digital Image Processing course\cite{CLASS:1}.  
-
-\subsubsection{Sweeping the image}
-To perform the visit of every pixel, as seen in listing \ref{code:halftoning}, it is used two nested \textit{for} statements. As the author was unable to vectorize the error propagation, the execution time occurs on the second scale. To define the value of the analyzed pixel in the iteration, an  offset is used, as the pixel is in the middle column related to mask.
+  Keyword arguments:
+  original -- the original image (numpy array)
+  compressed -- the compressed image (numpy array)
+  name -- the image name
+  n_components -- the number of components considered for the compression
+  """
+  original_size = os.path.getsize('input/' + name + '.png')
+  compressed_size = os.path.getsize('output/' + name + '_' + str(n_components) + '.png')
+  # calculates the compression rate by dividing the storage sizes
+  compression_rate = compressed_size/original_size
+  # Calculates RMSE
+  rmse = math.sqrt((((original - compressed)**2).sum())/(original.shape[0]*original.shape[1])) 
+  print("\t\t" + "Compression rate: " + str(compression_rate) + " RMSE:" + str(rmse))
+  
+  \end{lstlisting}
 
 \section{Experiments}
-The \textit{src/main.py} file executes the test pipeline. The idea is the following: for each input image, for each error propagation method, for each sweep order, generate the grayscale and colored halftoning output images. The input images are stored in \textbf{input} folder as mentioned before, and their names and dimensions are listed in table \ref{table:input}. The input images are shown in figure \ref{fig:input-images}
+The \textit{src/main.py} file executes the test pipeline. The idea is the following: for each input image, for number of components, generate the compressed versions and evaluate the result. The input images are stored in \textbf{input} folder as mentioned before, and their names and dimensions are listed in table \ref{table:input}. The input images are shown in figure \ref{fig:input-images}
 
 \begin{table}[h!]
 \centering
@@ -196,13 +168,13 @@ The \textit{src/main.py} file executes the test pipeline. The idea is the follow
  \hline
  Image Names & Dimensions (width x height) \\
  \hline
-  baboon\_colored.png &  512 x 512\\ 
+  baboon.png &  512 x 512\\ 
  \hline
-  monalisa\_colored.png & 256 x 256\\
+  monalisa.png & 256 x 256\\
  \hline
-  peppers\_colored.png &  512 x 512\\ 
+  peppers.png &  512 x 512\\ 
  \hline
-  watch\_colored.png & Vertical 1024 x 768\\
+  watch.png & 1024 x 768\\
  \hline
 \end{tabular}
 \caption{Input images used in experiments}
@@ -212,214 +184,197 @@ The \textit{src/main.py} file executes the test pipeline. The idea is the follow
 
 \begin{figure}[H]
   \centering
-  \includegraphics[width=0.4\hsize]{../input/baboon_colored.png}
-  \includegraphics[width=0.4\hsize]{../input/monalisa_colored.png}
-  \includegraphics[width=0.4\hsize]{../input/peppers_colored.png}
-  \includegraphics[width=0.4\hsize]{../input/watch_colored.png}
+  \includegraphics[width=0.4\hsize]{../input/baboon.png}
+  \includegraphics[width=0.4\hsize]{../input/monalisa.png}
+  \includegraphics[width=0.4\hsize]{../input/peppers.png}
+  \includegraphics[width=0.4\hsize]{../input/watch.png}
   \caption{Input images used in experiments. a) Baboon. b) Monalisa c) Peppers d) Watch}
   \label{fig:input-images}
 \end{figure}
 
-The error diffusion approaches are taken from the literature\cite{CLASS:1}. The listing \ref{code:masks} indicates their dimensions and weights. Table \ref{table:masks} lists the approaches names and the masks dimensions.
+The number of components used were taken from the example given by the project description\cite{PROJECT:5}. Table \ref{table:components} lists the used values.
 
 \begin{table}[h!]
   \centering
   \begin{center}
-  \begin{tabular}{ |c|c| } 
+  \begin{tabular}{ |c| } 
    \hline
-   Error diffusion method & Mask Dimensions (width x height) \\
+   Number of components used in tests \\
    \hline
-    Floyd and Steinberg &  3 x 2\\ 
+    1\\ 
    \hline
-    Stevenson and Arce & 7 x 4\\
+    5\\
    \hline
-    Burkes &  5 x 2\\ 
+    10\\ 
    \hline
-    Sierra & 5 x 3\\
+    20\\
    \hline
-    Stucki & 5 x 3\\
+    30\\
    \hline
-    Jarvis, Judice and Ninke & 5 x 3 \\ 
+    40 \\ 
+   \hline
+   50 \\
    \hline
   \end{tabular}
-  \caption{Error diffusion methods used in experiments}
-  \label{table:masks}
+  \caption{Number of components used in tests}
+  \label{table:components}
   \end{center}
   \end{table}
 
-As we have 4 input images, 6 error diffusion methos, 2 sweep modes and it generates 2 output images (grayscale and colored), we have 96 images of output. The output images are stored in the \textbf{output} folder.
+As we have 4 input images and 7 different component values, we have 28 images of output. The output images are stored in the \textbf{output} folder.
 
 \section{Discussion}
-This section is organized in four parts. The first part analyses the output images when compared to the original input. The second part takes into consideration the differences of sweeping modes. The third one does the comparisons between the error propagation methods. To sum up, the pros and cons of the implementation.
+This section is organized in two parts. The first part analyses the output images qualitatively. The second one checks the implemented indicators.
 
-\subsection{Effectiveness of the technique}
-In order to check if the premise of the implementation was achieved, the comparison between input and output images is needed. The figures \ref{fig:effect-baboon}, \ref{fig:effect-monalisa}, \ref{fig:effect-peppers}, \ref{fig:effect-watch} places input and output images together, for all the input images used in the experiments, showing a variety of methods and sweeping orders. 
+%\subsection{Effectiveness of the technique}
+\subsection{Checking the output images}
+In order to analyze the compressed images, the comparison between input and output images is needed. The figures \ref{fig:effect-baboon}, \ref{fig:effect-monalisa}, \ref{fig:effect-peppers}, \ref{fig:effect-watch} places input and output images together, for all the input images used in the experiments, showing their versions with the selected components. 
 
-\begin{figure}[H]
+\begin{figure}[h]
   \centering
-  \includegraphics[width=0.4\hsize]{../input/baboon_colored.png}
-  \includegraphics[width=0.4\hsize]{../output/baboon_grayscale_floyd-steinberg_left-to-right.png}
-  \includegraphics[width=0.4\hsize]{../output/baboon_colored_jarvis-judice-ninke_alternate.png}
-  \caption{Baboon images manipulated in experiments. a) Input. b) grayscale by using Floyd and Steinberg, left to right c) colored by using Jarvis, Judice and Ninke, alternate}
+  \includegraphics[width=0.4\hsize]{../input/baboon.png}
+  \includegraphics[width=0.4\hsize]{../output/baboon_1.png}
+  \includegraphics[width=0.4\hsize]{../output/baboon_5.png}
+  \includegraphics[width=0.4\hsize]{../output/baboon_10.png}
+  \includegraphics[width=0.4\hsize]{../output/baboon_20.png}
+  \includegraphics[width=0.4\hsize]{../output/baboon_30.png}
+  \includegraphics[width=0.4\hsize]{../output/baboon_40.png}
+  \includegraphics[width=0.4\hsize]{../output/baboon_50.png}
+  \caption{Baboon images manipulated in experiments. a) Input. b) Compressed with 1 component. c) Compressed with 5 components. d) Compressed with 10 components e) Compressed with 20 components f) Compressed with 30 components g) Compressed with 40 components h) Compressed with 50 components}
   \label{fig:effect-baboon}
 \end{figure}
 
-It is interesting to notice, from those images, that the output images are closely related to the input images, even though it is used only the maximum and minimum values of grayscale and color channels. The error diffusion works well in applying the feeling of having multiple intensities of colors, notwithstanding we can still see points or regions with points in the output (\textit{e.g.:} monalisa (grayscale and colored), baboon (grayscale), peppers (colored)).  
-
-\begin{figure}[H]
+\begin{figure}[h]
   \centering
-  \includegraphics[width=0.4\hsize]{../input/monalisa_colored.png}
-  \includegraphics[width=0.4\hsize]{../output/monalisa_grayscale_stevenson-arce_alternate.png}
-  \includegraphics[width=0.4\hsize]{../output/monalisa_colored_sierra_left-to-right.png}
-  \caption{Monalisa images manipulated in experiments. a) Input. b) grayscale by using Stevenson and Arce, alternate c) Colored by using Sierra, left to right}
+  \includegraphics[width=0.4\hsize]{../input/monalisa.png}
+  \includegraphics[width=0.4\hsize]{../output/monalisa_1.png}
+  \includegraphics[width=0.4\hsize]{../output/monalisa_5.png}
+  \includegraphics[width=0.4\hsize]{../output/monalisa_10.png}
+  \includegraphics[width=0.4\hsize]{../output/monalisa_20.png}
+  \includegraphics[width=0.4\hsize]{../output/monalisa_30.png}
+  \includegraphics[width=0.4\hsize]{../output/monalisa_40.png}
+  \includegraphics[width=0.4\hsize]{../output/monalisa_50.png}
+  \caption{Monalisa images manipulated in experiments. a) Input. b) Compressed with 1 component. c) Compressed with 5 components. d) Compressed with 10 components e) Compressed with 20 components f) Compressed with 30 components g) Compressed with 40 components h) Compressed with 50 components}
   \label{fig:effect-monalisa}
 \end{figure}
 
-\begin{figure}[H]
+\begin{figure}[h]
   \centering
-  \includegraphics[width=0.4\hsize]{../input/peppers_colored.png}
-  \includegraphics[width=0.4\hsize]{../output/peppers_grayscale_stucki_left-to-right.png}
-  \includegraphics[width=0.4\hsize]{../output/peppers_colored_burkes_alternate.png}
-  \caption{Peppers images manipulated in experiments. a) Input. b) Grayscale by using Stucki, left to right c) Colored by using Burkes, alternate }
+  \includegraphics[width=0.4\hsize]{../input/peppers.png}
+  \includegraphics[width=0.4\hsize]{../output/peppers_1.png}
+  \includegraphics[width=0.4\hsize]{../output/peppers_5.png}
+  \includegraphics[width=0.4\hsize]{../output/peppers_10.png}
+  \includegraphics[width=0.4\hsize]{../output/peppers_20.png}
+  \includegraphics[width=0.4\hsize]{../output/peppers_30.png}
+  \includegraphics[width=0.4\hsize]{../output/peppers_40.png}
+  \includegraphics[width=0.4\hsize]{../output/peppers_50.png}
+  \caption{Peppers images manipulated in experiments. a) Input. b) Compressed with 1 component. c) Compressed with 5 components. d) Compressed with 10 components e) Compressed with 20 components f) Compressed with 30 components g) Compressed with 40 components h) Compressed with 50 components}
   \label{fig:effect-peppers}
 \end{figure}
 
-Furthermore, the output images maintain the contrast seen in the input ones. It is clear that the error diffusion generates outputs which differs a lot of the process of binarization, in which necessary information of image is lost from the quantization according to a specific threshold. 
-
-\begin{figure}[H]
+\begin{figure}[h]
   \centering
-  \includegraphics[width=0.4\hsize]{../input/watch_colored.png}
-  \includegraphics[width=0.4\hsize]{../output/watch_grayscale_jarvis-judice-ninke_left-to-right.png}
-  \includegraphics[width=0.4\hsize]{../output/watch_colored_floyd-steinberg_alternate.png}
-  \caption{Watch images manipulated in experiments. a) Input. b) Grayscale by using Jarvis, Judice and Ninke, left to right. c) Colored by using Floyd and Steinberg, alternate. }
+  \includegraphics[width=0.4\hsize]{../input/watch.png}
+  \includegraphics[width=0.4\hsize]{../output/watch_1.png}
+  \includegraphics[width=0.4\hsize]{../output/watch_5.png}
+  \includegraphics[width=0.4\hsize]{../output/watch_10.png}
+  \includegraphics[width=0.4\hsize]{../output/watch_20.png}
+  \includegraphics[width=0.4\hsize]{../output/watch_30.png}
+  \includegraphics[width=0.4\hsize]{../output/watch_40.png}
+  \includegraphics[width=0.4\hsize]{../output/watch_50.png}
+  \caption{Watch images manipulated in experiments. a) Input. b) Compressed with 1 component. c) Compressed with 5 components. d) Compressed with 10 components e) Compressed with 20 components f) Compressed with 30 components g) Compressed with 40 components h) Compressed with 50 components}
   \label{fig:effect-watch}
 \end{figure}
 
-\subsection{Sweeping mode differences}
+From the generated images, it is observable the loss of quality created by the process. Even though the greater amount of information is stored in the first component, the image details (high frequency information) is lost from the less significant ones. The higher the dimension and the entropy of the image, the greater is the amount of information loss, because it has more components and more high frequency information. Therefore, the least impacted image is the monalisa one, in which in the last case (50 components), almost half of the components is kept. The most impacted one is the baboon image.  
 
-For sweeping mode comparisons, an ideia is to place side by side output images related to the same input and same error diffusion method, and comparing them visually. As the report does not include the images in its real dimensions, it is encouraged to the reader to access the images in the \textbf{output} folder for further inspection. Figures \ref{fig:sweep-baboon}, \ref{fig:sweep-monalisa}, \ref{fig:sweep-peppers} and \ref{fig:sweep-watch} shows 4 output images for every input image, created using the two sweep methods, in grayscale and color.
+\subsection{Indicators Results}
 
-\begin{figure}[H]
-  \centering
-  \includegraphics[width=0.4\hsize]{../output/baboon_grayscale_floyd-steinberg_left-to-right.png}
-  \includegraphics[width=0.4\hsize]{../output/baboon_grayscale_floyd-steinberg_alternate.png}
-  \includegraphics[width=0.4\hsize]{../output/baboon_colored_floyd-steinberg_left-to-right.png}
-  \includegraphics[width=0.4\hsize]{../output/baboon_colored_floyd-steinberg_alternate.png}
-  \caption{Baboon images manipulated in experiments. a) Grayscale by using Floyd and Steinberg, left to right. b) Grayscale by using Floyd and Steinberg, alternate. c) Colored by using Floyd and Steinberg, left to right. d) Colored by using Floyd and Steinberg, alternate.}
-  \label{fig:sweep-baboon}
-\end{figure}
+In order to analyze the effectiveness of the compression method, the compression rate and RMSE indicators were implemented. The result for all input images are shown in the listings \ref{code:baboon-e}, \ref{code:monalisa-e}, \ref{code:peppers-e} and \ref{code:watch-e}.
 
-The differences are subtle, which makes it difficult to notice in the report, but by inspecting the original ones it is possible to see, for the baboon image input, that the sweep order from left to right creates more visible error points (\textit{e.g.: }yellow and green\textit{-ish} points are bigger in the nose of the baboon) than the alternate sweep. For their grayscale versions, the differences are harder to notice but the same effect is observable (if image is \textit{zoomed-in}).
+\begin{lstlisting}[language=sh, caption={Indicators Results for Baboon Image}, label={code:baboon-e}]
+baboon image:
+	1 component(s):
+		Compression rate: 0.4606994438097151 RMSE:75.38358915100255
+	5 component(s):
+		Compression rate: 0.605770317267009 RMSE:53.71495530921579
+	10 component(s):
+		Compression rate: 0.6823673241346407 RMSE:48.29679156656673
+	20 component(s):
+		Compression rate: 0.7680416577734811 RMSE:43.11258403464472
+	30 component(s):
+		Compression rate: 0.8153649135582368 RMSE:39.44550826386878
+	40 component(s):
+		Compression rate: 0.8499196474532009 RMSE:36.36220234788848
+	50 component(s):
+		Compression rate: 0.8746861228640661 RMSE:33.656196118816396
+\end{lstlisting}
 
-\begin{figure}[H]
-  \centering
-  \includegraphics[width=0.4\hsize]{../output/monalisa_grayscale_stucki_left-to-right.png}
-  \includegraphics[width=0.4\hsize]{../output/monalisa_grayscale_stucki_alternate.png}
-  \includegraphics[width=0.4\hsize]{../output/monalisa_colored_stucki_left-to-right.png}
-  \includegraphics[width=0.4\hsize]{../output/monalisa_colored_stucki_alternate.png}
-  \caption{Monalisa images manipulated in experiments. a) Grayscale by using Stucki, left to right. b) Grayscale by using Stucki, alternate. c) Colored by using Stucki, left to right. d) Colored by using Stucki, alternate.}
-  \label{fig:sweep-monalisa}
-\end{figure}
+For the baboon image, we can see that the quality of the image improves as the number of components increases. In the last case, the compression rate is of 87\%, which shows considerable storage economy, but with a high decrease of quality, shown by the value of the RMSE.
 
-As the monalisa image input is smaller compared to the other ones, it is difficult to spot any differences between the sweep methods.
+\begin{lstlisting}[language=sh, caption={Indicators Results for Monalisa Image}, label={code:monalisa-e}]
+monalisa image:
+	1 component(s):
+		Compression rate: 0.6481713867848727 RMSE:58.78760860070345
+	5 component(s):
+		Compression rate: 0.851562288407197 RMSE:26.41430931357357
+	10 component(s):
+		Compression rate: 0.9292930204844403 RMSE:18.18466943405659
+	20 component(s):
+		Compression rate: 1.0013361380194463 RMSE:13.001416726457146
+	30 component(s):
+		Compression rate: 1.0442279740355882 RMSE:10.61092785784305
+	40 component(s):
+		Compression rate: 1.075094567876714 RMSE:9.060191683551615
+	50 component(s):
+		Compression rate: 1.0990186607924743 RMSE:7.8451398862882264
+\end{lstlisting}
 
-\begin{figure}[H]
-  \centering
-  \includegraphics[width=0.4\hsize]{../output/peppers_grayscale_stevenson-arce_left-to-right.png}
-  \includegraphics[width=0.4\hsize]{../output/peppers_grayscale_stevenson-arce_alternate.png}
-  \includegraphics[width=0.4\hsize]{../output/peppers_colored_stevenson-arce_left-to-right.png}
-  \includegraphics[width=0.4\hsize]{../output/peppers_colored_stevenson-arce_alternate.png}
-  \caption{Peppers images manipulated in experiments. a) Grayscale by using Stevenson and Arce, left to right. b) Grayscale by using Stevenson and Arce, alternate. c) Colored by using Stevenson and Arce, left to right. d) Colored by using Stevenson and Arce, alternate.}
-  \label{fig:sweep-peppers}
-\end{figure}
+In the case of the monalisa image, we can see an example of how the method does not necessarily work for all images. With more than 20 components, the storage needed for the compressed image is higher than the original input, which shows some failure in the methodology. Also, even though it requires more space, the quality is affected, as some details of the image are lost. With 10 components, the objective is achieved, even though the economy is not as considerable as the quality loss. 
 
-In the peppers case, the differences are more visible in the colored examples. As the background is black, the error diffusion is clearly spotted in the bottom of the image (green blur). For the left to right sweep, the blur are is bigger than in the alternate sweep, and it has the "bottom-to-right" direction, as expected from the mask characteristics and the sweep order. For the alternate sweep, the blur area is more "self-contained", as the propagation happens from left to right and right to left, so the error is diffused to the boundaries of the pepper itself, giving the feeling of more correctude. The error propagation is also clearer in this image for the grayscale cases, as we can see from the white spots in the black background.
+\begin{lstlisting}[language=sh, caption={Indicators Results for Peppers Image}, label={code:peppers-e}]
+peppers image:
+	1 component(s):
+		Compression rate: 0.4759099320834006 RMSE:89.7798662152033
+	5 component(s):
+		Compression rate: 0.6391102350073967 RMSE:51.023487322642914
+	10 component(s):
+		Compression rate: 0.7124208119179803 RMSE:37.19033543015182
+	20 component(s):
+		Compression rate: 0.780881263816731 RMSE:25.239017029794333
+	30 component(s):
+		Compression rate: 0.815639564992232 RMSE:19.7246540299187
+	40 component(s):
+		Compression rate: 0.8768201889933902 RMSE:16.34744383844143
+	50 component(s):
+		Compression rate: 0.8874021111872133 RMSE:14.066020558078767
+\end{lstlisting}
 
-\begin{figure}[H]
-  \centering
-  \includegraphics[width=0.4\hsize]{../output/watch_grayscale_burkes_left-to-right.png}
-  \includegraphics[width=0.4\hsize]{../output/watch_grayscale_burkes_alternate.png}
-  \includegraphics[width=0.4\hsize]{../output/watch_colored_burkes_left-to-right.png}
-  \includegraphics[width=0.4\hsize]{../output/watch_colored_burkes_alternate.png}
-  \caption{Watch images manipulated in experiments. a) Grayscale by using Burkes, left to right. b) Grayscale by using Burkes, alternate. c) Colored by using Burkes, left to right. d) Colored by using Burkes, alternate.}
-  \label{fig:sweep-watch}
-\end{figure}
+For the pappers image, we also have storage economy, with measurable quality loss. The method works better here, as there are less high-frequency information in this case. Still, the RMSE value could be a problem for some applications.
 
-The same effects noticed in the peppers image appears here for the colored output. Some error is spotted in the "Z arrow" in the image for left to right sweep, while the same error does not appear in the alternate one. Surprisingly, for the grayscale output and Burkes mask, the written text in the left-to-right image has better quality than in the alternate one.
+\begin{lstlisting}[language=sh, caption={Indicators Results for Watch Image}, label={code:watch-e}]
+watch image:
+	1 component(s):
+		Compression rate: 0.7172106688702199 RMSE:57.18398114099044
+	5 component(s):
+		Compression rate: 1.014637274480099 RMSE:40.89070190048771
+	10 component(s):
+		Compression rate: 1.1777633360877748 RMSE:34.91354161920759
+	20 component(s):
+		Compression rate: 1.3540734173438003 RMSE:28.577257735650306
+	30 component(s):
+		Compression rate: 1.4670528623238306 RMSE:24.913312768720537
+	40 component(s):
+		Compression rate: 1.569728974429601 RMSE:22.31593967903772
+	50 component(s):
+		Compression rate: 1.6414333998990038 RMSE:20.192015693023528
+\end{lstlisting}
 
-In the majority of cases, the alternate sweep obtained greater quality results, as it tries to compensate the error propagation to both directions.
-
-\subsection{Error Diffusion Methods}
-When analyzing the approaches listed in the literature to solve the problem, it is interesting to analyze them side-by-side. To do so, it is chosen colored or grayscale versions of a specific output, and a fixed sweep method, in this case, alternate. Then all solution proposals are grouped. Figures \ref{fig:methods-baboon}, \ref{fig:methods-monalisa}, \ref{fig:methods-peppers} and \ref{fig:methods-watch} shows 6 output images for each input, alternating the error diffusion methods.
-
-\begin{figure}[H]
-  \centering
-  \includegraphics[width=0.4\hsize]{../output/baboon_colored_floyd-steinberg_alternate.png}
-  \includegraphics[width=0.4\hsize]{../output/baboon_colored_stevenson-arce_alternate.png}
-  \includegraphics[width=0.4\hsize]{../output/baboon_colored_burkes_alternate.png}
-  \includegraphics[width=0.4\hsize]{../output/baboon_colored_sierra_alternate.png}
-  \includegraphics[width=0.4\hsize]{../output/baboon_colored_stucki_alternate.png}
-  \includegraphics[width=0.4\hsize]{../output/baboon_colored_jarvis-judice-ninke_alternate.png}
-  \caption{Baboon images manipulated in experiments. a) Colored by using Floyd and Steiberg, alternate. b) Colored by using Stevenson and Arce, alternate. c) Colored by using Burkes, alternate. d) Colored by using Sierra, alternate. e) Colored by using Stucki, alternate. f) Colored by using Jarvis, Judice and Ninke, alternate. }
-  \label{fig:methods-baboon}
-\end{figure}
-
-For all error diffusion approaches, the main objective is achieved, but each of them have their peculiarity. With Floyd and Steinberg method, we can see the error more clearly as color points that don't fit to their background (yellow and green points in baboon nose, red points in its blue face). Stevenson and Arce highlights the contours, while we have the similar visibility of errors of Floyd and Steinberg. For Burkes, the error is less noticeable, and the contours of baboon face are atenuated a bit, as the mask is short. For Stucki, Sierra and Jarvis, Judice and Ninke, the visibility of errors is also reduced, and the contours are more visible, as the mask is bigger.   
-
-\begin{figure}[H]
-  \centering
-  \includegraphics[width=0.4\hsize]{../output/monalisa_grayscale_floyd-steinberg_alternate.png}
-  \includegraphics[width=0.4\hsize]{../output/monalisa_grayscale_stevenson-arce_alternate.png}
-  \includegraphics[width=0.4\hsize]{../output/monalisa_grayscale_burkes_alternate.png}
-  \includegraphics[width=0.4\hsize]{../output/monalisa_grayscale_sierra_alternate.png}
-  \includegraphics[width=0.4\hsize]{../output/monalisa_grayscale_stucki_alternate.png}
-  \includegraphics[width=0.4\hsize]{../output/monalisa_grayscale_jarvis-judice-ninke_alternate.png}
-  \caption{Monalisa images manipulated in experiments. a) Grayscale by using Floyd and Steiberg, alternate. b) Grayscale by using Stevenson and Arce, alternate. c) Grayscale by using Burkes, alternate. d) Grayscale by using Sierra, alternate. e) Grayscale by using Stucki, alternate. f) Grayscale by using Jarvis, Judice and Ninke, alternate. }
-  \label{fig:methods-monalisa}
-\end{figure}
-
-For Monalisa, as the image is smaller, the differences are more difficult to grasp. But is is observable that the Floyd and Steinberg image has more noise than the other ones, and the Stevenson and Arce gives the feeling of having greater contrast. 
-
-The pepper output images have the same characteristics of the baboon image, already listed.
-
-For the watch images, all of them reproduces the image well, being able to distinguish their details, even though the noise feeling is greater in the Floyd and Steinberg approach. All of them fail to reproduce the black background correctly. 
-
-\begin{figure}[H]
-  \centering
-  \includegraphics[width=0.4\hsize]{../output/peppers_colored_floyd-steinberg_alternate.png}
-  \includegraphics[width=0.4\hsize]{../output/peppers_colored_stevenson-arce_alternate.png}
-  \includegraphics[width=0.4\hsize]{../output/peppers_colored_burkes_alternate.png}
-  \includegraphics[width=0.4\hsize]{../output/peppers_colored_sierra_alternate.png}
-  \includegraphics[width=0.4\hsize]{../output/peppers_colored_stucki_alternate.png}
-  \includegraphics[width=0.4\hsize]{../output/peppers_colored_jarvis-judice-ninke_alternate.png}
-  \caption{Peppers images manipulated in experiments. a) Colored by using Floyd and Steiberg, alternate. b) Colored by using Stevenson and Arce, alternate. c) Colored by using Burkes, alternate. d) Colored by using Sierra, alternate. e) Colored by using Stucki, alternate. f) Colored by using Jarvis, Judice and Ninke, alternate. }
-  \label{fig:methods-peppers}
-\end{figure}
-
- 
-
-\begin{figure}[H]
-  \centering
-  \includegraphics[width=0.4\hsize]{../output/watch_grayscale_floyd-steinberg_alternate.png}
-  \includegraphics[width=0.4\hsize]{../output/watch_grayscale_stevenson-arce_alternate.png}
-  \includegraphics[width=0.4\hsize]{../output/watch_grayscale_burkes_alternate.png}
-  \includegraphics[width=0.4\hsize]{../output/watch_grayscale_sierra_alternate.png}
-  \includegraphics[width=0.4\hsize]{../output/watch_grayscale_stucki_alternate.png}
-  \includegraphics[width=0.4\hsize]{../output/watch_grayscale_jarvis-judice-ninke_alternate.png}
-  \caption{Watch images manipulated in experiments. a) Grayscale by using Floyd and Steiberg, alternate. b) Grayscale by using Stevenson and Arce, alternate. c) Grayscale by using Burkes, alternate. d) Grayscale by using Sierra, alternate. e) Grayscale by using Stucki, alternate. f) Grayscale by using Jarvis, Judice and Ninke, alternate.}
-  \label{fig:methods-watch}
-\end{figure}
-
-\subsection{Pros and Cons}
-All methods achieve the objective of representing the original image characteristics with only two intensities per channel, each one having its own peculiarity. Floyd and Steinberg images have the least visible quality, as the propagated error is visible in the output, giving the feeling of being \textit{noisy}. Stevenson and Arce images are very interesting, as they highlights the contours of objects in the image. The other methods proposed generate images with great quality, not interfering a lot in its original contours. In general, the technique performs bad when propagating error to uniform spaces, as the blackbackgrounds in our experiments.
-
-Enabling the benchmarking flag, it was able to check the execution time for every output image. For each image channel, the execution time varied from 0.7 seconds for the monalisa image (smallest dimensions) to 9 seconds for the watch image (biggest dimensions), executing in a Intel(R) Core(TM) i7-4720HQ CPU @ 2.60GHz processor. As the technique sweeps through every pixel to do the error diffusion, the execution time is penalyzed.
-
+For the watch image, the method fails to achieve its objective. The storage required dramatically increases when more components are selected, to the point it surpasses the original image size in the case of only 5, with poor image quality, as shown by the high RMSE.
 
 \section{Conclusion}
-The application of halftoning techniques to generate output images with similar characteristics of their inputs with only two levels of color intensity per channel was possible thanks to error propagation through image sweeping.
+The application of the PCA technique to generate compressed versions of images did not succeed for all types of images. For images with high-frequency components, the loss of quality in the output images might be more than expected. The method does not guarantee to decrease the storage requirements for all images.
 
-The usage of different input images, error diffusion techniques and sweep modes made it possible to analyze each approach's strength.
 
 \bibliography{ref-project} 
 \bibliographystyle{ieeetr}
